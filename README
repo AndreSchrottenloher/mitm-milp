@@ -1,0 +1,30 @@
+
+
+Contents of the files:
+- util.py: Generic implementation of a cell-based representation, as a directed
+            graph with various parameters (cells, linear constraints, weights, etc.)
+- generic.py: MILP program finding a merging-based MITM attack with 2 lists.
+            It works in all settings (AES-like, Present-like, Extended)
+- generic4.py: same, but with 4 lists, and it only works for Present-like and Extended
+
+- aes.py: Examples of attacks on AES-like designs (AES, Haraka and Grostl)
+- present.py: Examples of attacks on Present-like designs (Present and Spongent)
+- gimli.py: Examples of attacks on Gimli
+- feistels.py: Examples of attacks on Feistel-like designs (Simpira and Sparkle)
+
+- feistelsgad/simpira_util.py: representation of an equation system resulting
+            from a MITM problem on Simpira variants
+- feistelsgad/simpira_implementation.py: pure python implementation of Simpira
+- feistelsgad/simpira_attacks.py: demonstration of simple and practical 
+            Guess-and-determine (GAD) attacks on reduced-round Simpira
+- feistelsgad/sparkle_util.py: pure python implementation of Sparkle
+- feistelsgad/sparkle_attacks.py: demonstration of simple and practical
+            Guess-and-determine (GAD) attacks on reduced-round Sparkle
+            
+
+Running the aes.py / present.py / gimli.py / feistels.py scripts will launch
+a MILP optimization (depending on the selected design). If you don't want
+to wait for completion, it can be stopped by CTRL+C (in Linux terminal). The script
+then prints (to the terminal) the parameters of the attack found and the
+contents of each list. 
+
