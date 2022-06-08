@@ -37,8 +37,8 @@
 #=========================================================================
 
 # Author: André Schrottenloher & Marc Stevens
-# Date: January 2022
-# Version: 1
+# Date: June 2022
+# Version: 2
 
 #=========================================================================
 """
@@ -164,6 +164,24 @@ def make_grostl512_constraints(nrounds=5, merge=None):
     return cons
 
 
+def make_streebog256_constraints(nrounds=6):
+    cons = PresentConstraints(nrounds=nrounds)
+    d = 16
+    edge_width = 1. / 8.
+    cell_width = 1
+    for r in range(nrounds):
+        for i in range(d):
+            cons.add_cell(r, w=cell_width)
+    # transposition: cell i at round
+
+    # due to the shifts, cell i at round r+1 has links with
+    # i, i+1, i+2, i+3, i+4, i+5, i+6, i+11 at round r
+    for r in range(nrounds - 1):
+        for i in range(d):
+            for s in [0, 1, 2, 3, 4, 5, 6, 11]:
+                cons.add_edge_2(r, (i + s) % d, i, w=edge_width)
+
+
 def make_saturnin_constraints(nrounds=5, merge=None):
     cons = PresentConstraints(nrounds=nrounds)  # half-rounds actually
     # cells = columns of the cube.
@@ -270,7 +288,9 @@ def make_haraka256_constraints(nrounds=5):
     return cons
 
 
-def make_haraka512_constraints(nrounds=5, flag="partial-wrapping"):
+def make_haraka512_constraints(nrounds=5,
+                               flag="partial-wrapping",
+                               omit_final_mix=False):
     """
     nrounds: number of AES rounds (corresponds to half-rounds in Haraka)
 
@@ -318,7 +338,7 @@ def make_haraka512_constraints(nrounds=5, flag="partial-wrapping"):
     else:
         wrapping_columns = [0, 1, 2, 3, 4, 5, 6, 7]
     r = nrounds - 1
-    if r % 2 == 0:
+    if r % 2 == 0 or omit_final_mix:
         # no MIX: four parallel AES rounds
         for i in range(16):
             for j in range(4):
@@ -394,6 +414,7 @@ if __name__ == "__main__":
     d = 4  # state size parameter for AES-like square states
     optimize_with_mem = True
     generic_flag = SINGLE_SOLUTION
+    memory_limit = None
 
     if attack == "test":
         nrounds, d, final_mc, structure_flag = 6, 4, True, "full-wrapping"
@@ -496,6 +517,20 @@ if __name__ == "__main__":
         ], [0, 1, 2, 3]
         covered_round = 4
 
+    elif attack == "haraka512-10":
+        # used to obtain the path of the attack on 10-round Haraka-512 in the full
+        # version of the paper.
+        nrounds = 10
+        cons = make_haraka512_constraints(nrounds=nrounds,
+                                          omit_final_mix=False)
+        memory_limit = 1  # we wanted something which was doable in practical time,
+        # so a memory limited to 2^32
+        backward_hint = ['x^%i_%i' % (1, i) for i in range(16) if i >= 8]
+        backward_zero = ['x^%i_%i' % (1, i) for i in range(16) if i < 8]
+        cut_forward = [0, 1, 2, 3]
+        cut_backward = [6, 7, 8, 9]
+        covered_round = 4
+
     else:
         raise ValueError("Invalid attack: " + str(attack))
 
@@ -506,6 +541,7 @@ if __name__ == "__main__":
             flag=generic_flag,
             computation_model=computation_model,
             optimize_with_mem=optimize_with_mem,
+            memory_limit=memory_limit,
             cut_forward=cut_forward,
             cut_backward=cut_backward,
             backward_hint=backward_hint,
@@ -532,7 +568,7 @@ if __name__ == "__main__":
         if attack == "haraka-256v2":
             str_pic = convert_to_haraka256_pic(cons, cell_var_covered,
                                                global_lincons)
-        elif attack in ["haraka-512v2", "haraka-sponge"]:
+        elif attack in ["haraka512", "haraka-sponge", "haraka512-10"]:
             str_pic = convert_to_present_pic(cons,
                                              cell_var_covered,
                                              global_lincons,

@@ -1,5 +1,4 @@
 
-
 Contents of the files:
 - util.py: Generic implementation of a cell-based representation, as a directed
             graph with various parameters (cells, linear constraints, weights, etc.)
@@ -20,7 +19,11 @@ Contents of the files:
 - feistelsgad/sparkle_util.py: pure python implementation of Sparkle
 - feistelsgad/sparkle_attacks.py: demonstration of simple and practical
             Guess-and-determine (GAD) attacks on reduced-round Sparkle
-            
+
+- haraka/haraka.cpp: demonstrator of our attack against the full Haraka-512 hash function.
+Use "make haraka" to compile and run the attack. It will take some time, and also,
+maye require to run several times by updating the "seed" value in the code.
+   
 
 Running the aes.py / present.py / gimli.py / feistels.py scripts will launch
 a MILP optimization (depending on the selected design). If you don't want

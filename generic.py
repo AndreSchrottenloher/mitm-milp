@@ -37,8 +37,8 @@
 #=========================================================================
 
 # Author: André Schrottenloher & Marc Stevens
-# Date: January 2022
-# Version: 1
+# Date: June 2022
+# Version: 2
 
 #=========================================================================
 """
@@ -95,6 +95,7 @@ def find_mitm_attack(present_constraints,
                      computation_model=CLASSICAL_COMPUTATION,
                      setting=PRESENT_SETTING,
                      optimize_with_mem=True,
+                     memory_limit=None,
                      cut_forward=[],
                      cut_backward=[],
                      backward_hint=[],
@@ -301,6 +302,9 @@ def find_mitm_attack(present_constraints,
         # time first, and for a given time, find the minimal memory
         # this will be much more costly than time alone
         m.setObjective(1000 * (time_comp) + memory_comp, sense="minimize")
+
+    if memory_limit is not None:
+        m.addCons(memory_comp <= memory_limit)
 
     #======= constraints to simplify the path
     # "hints"
@@ -537,7 +541,8 @@ def find_mitm_attack(present_constraints,
                   quicksum([cell_contrib[label][c]
                             for c in cells]) - global_reduction)
 
-    #=====================================================================
+
+#=====================================================================
 
     m.optimize()
 

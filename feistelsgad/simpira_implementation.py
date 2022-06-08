@@ -37,8 +37,8 @@
 #=========================================================================
 
 # Author: André Schrottenloher & Marc Stevens
-# Date: January 2022
-# Version: 1
+# Date: June 2022
+# Version: 2
 
 #=========================================================================
 """
@@ -432,4 +432,11 @@ def simpira_state_to_str(state):
 
 if __name__ == "__main__":
 
-    test()
+    #test()
+    import time
+    t1 = time.time()
+    #print(time.time())
+    for i in range(2**10):
+        tmp = [[0] * 16, [0] * 16, [0] * 16, [0] * 16]
+        simpira4(tmp, 15)
+    print(time.time() - t1)

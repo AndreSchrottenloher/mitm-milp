@@ -37,8 +37,8 @@
 #=========================================================================
 
 # Author: André Schrottenloher & Marc Stevens
-# Date: January 2022
-# Version: 1
+# Date: June 2022
+# Version: 2
 
 #=========================================================================
 """
@@ -98,25 +98,31 @@ class SimpiraEquationSystem:
     is represented by two lists: "sum" = [1,2] and "pi" = [(3,4), (4,5)]
     """
 
-    def __init__(self, b=4, nrounds=8):
+    def __init__(self, flag="feistel", b=4, nrounds=8, perm=None):
         self.b = b
         self.eqs = []
         self.init_state = None
         self.final_state = None
         self.variables = set()
         self._init_tikz()
-        if b == 3:
-            self._init_3(nrounds=nrounds)
-        elif b == 2:
-            self._init_2(nrounds=nrounds)
-        elif b == 4:
-            self._init_4(nrounds=nrounds)
-        elif b == 6:
-            self._init_6(nrounds=nrounds)
-        elif b == 8:
-            self._init_8(nrounds=nrounds)
-        else:
-            self._init_gen(ndf=nrounds)
+
+        if flag == "simpira":
+
+            if b == 3:
+                self._init_3(nrounds=nrounds)
+            elif b == 2:
+                self._init_2(nrounds=nrounds)
+            elif b == 4:
+                self._init_4(nrounds=nrounds)
+            elif b == 6:
+                self._init_6(nrounds=nrounds)
+            elif b == 8:
+                self._init_8(nrounds=nrounds)
+            else:
+                self._init_gen(ndf=nrounds)
+        elif flag == "feistel":
+            self._init_feistel(perm=perm, nrounds=nrounds)
+
         self._finalize_tikz()
 
     def __getitem__(self, i):
@@ -480,6 +486,44 @@ class SimpiraEquationSystem:
                 i += 1
         self.final_state = copy(current_state)
 
+    def _init_feistel(self, perm, nrounds=6):
+        """
+        Initializes a general Feistel scheme with a state of 2n size and a permutation
+        of branches. At each round branch 2*i is XORed on 2i+1
+        """
+        i = 0
+        state_size = len(perm)
+        if state_size % 2 != 0:
+            raise ValueError("State size unsupported")
+        current_state = [j for j in range(state_size)]
+        self.init_state = copy(current_state)
+        numbering = state_size
+        # perm is represented as: branch i goes to position perm[i]
+        inv_perm = [None for j in range(state_size)]
+        for j in range(state_size):
+            inv_perm[perm[j]] = j
+        current_perm = [j for j in range(state_size)]
+
+        # for round 0 we XOR: 2*i on 2*i+1
+        # for round 1 we XOR: invperm[2*i] on invperm[2*i+1]
+        # for round 2: invperm^2[2*i] on invperm^2[2*i+1]
+        for r in range(nrounds):
+            # XOR branch b on branch a
+            for j in range(state_size // 2):
+                b = current_perm[2 * j]
+                a = current_perm[2 * j + 1]
+                self._tikz_add_branch(a, b, 0, numbering)
+                self.add_eq([current_state[a], numbering],
+                            [(i, current_state[b])])
+                current_state[a] = numbering
+                numbering += 1
+            # compose with the inv_perm
+            new_perm = [None for j in range(state_size)]
+            for j in current_perm:
+                new_perm[j] = current_perm[inv_perm[j]]
+            current_perm = new_perm
+        self.final_state = copy(current_state)
+
     def _init_gen(self, ndf=100):
         b = self.b
         i = 0
@@ -631,15 +675,105 @@ if __name__ == "__main__":
 
     # for MILP we want to work with a simplified system
 
-    eqs = SimpiraEquationSystem(b=7, nrounds=21)
-    eqs.wrap(0, 0)
+    #    eqs = SimpiraEquationSystem(b=7, nrounds=21)
 
-    print("=== Not simplified:")
+    #    for i in range(16):
+    #        for j in range(16):
+    #            eqs = SimpiraEquationSystem(b=16, flag="feistel", nrounds=15,
+    #                perm=[5,0,1,4,7,12,3,8,13,6,9,2,15,10,11,14])
+    #            eqs.wrap(i,j)
+    #            eqs.simplify(verb=False)
+    #            if eqs.eqs == []:
+    #                print(i,j)
+
+    eqs = SimpiraEquationSystem(
+        b=16,
+        flag="feistel",
+        nrounds=14,
+        perm=[5, 0, 1, 4, 7, 12, 3, 8, 13, 6, 9, 2, 15, 10, 11, 14])
+    eqs.wrap(0, 1)
     print(eqs)
-    eqs.simplify(verb=False)
-    print("=== Simplified:")
-    print(eqs)
+
+    eqs.simplify(verb=True)
     print(eqs.variables)
-    print("=== Expanded:")
-    eqs.expand()
+    #    gad_solving(eqs, nb_steps=10, goal=15)
+
+    #    eqs.expand()
+    #    print(eqs.tikz)
+
+    #    eqs.wrap(0,9)
+    #    eqs.simplify(verb=False)
     print(eqs)
+
+#    eqs.replace_by_value(81, [0]*16)
+#    eqs.replace_by_value(36, [0]*16)
+#    eqs.replace_by_value(100, [0]*16)
+#    eqs.replace_by_value(17, [0]*16)
+#    eqs.replace_by_value(54, [0]*16)
+#    eqs.replace_by_value(67, [0]*16)
+#    eqs.replace_by_value(118, [0]*16)
+##     + 6
+#    # + 3 -> 9
+
+# + 6
+#    for i in [81,39,17,103,64,54,118]:
+#        eqs.replace_by_value(i, [0]*16)
+#
+#    # + 5
+#    for i in [42,28,46,56,59,77,95,73,92,106]:
+#        eqs.replace_by_value(i, [0]*16)
+#    # reste 4
+#
+#    for i in [35,53,68,82,99]:
+#        eqs.replace_by_value(i, [0]*16)
+###
+#    for i in [70, 55, 63]:
+#        eqs.replace_by_value(i, [0]*16)
+#    # reste 3
+
+#    for i in [83,66,78]: # reste 2
+#        eqs.replace_by_value(i, [0]*16)
+
+#    for i in [26,47,0,61,72,90,111]: # reste 1
+#        eqs.replace_by_value(i, [0]*16)
+
+#    for i in [88,80,97,69, 60, 62, 51 , 58]: # reste 0
+#        eqs.replace_by_value(i, [0]*16)
+
+#    for i in [69, 51,  60]:
+#        eqs.replace_by_value(i, [0]*16)
+
+##
+##
+#    for i in [65,51,80,101]:
+#        eqs.replace_by_value(i, [0]*16)
+
+#    for i in [40,57,61,59,56,73,82,90,96, 63,88, 46,69,110, 24,76,1, 87]:
+#        eqs.replace_by_value(i, [0]*16)
+
+##    for i in [25,58,75,93,108 ,44,47,62,72,89 ]:#+5 -> 13 guesses
+##        eqs.replace_by_value(i, [0]*16)
+##
+##    for i in [32,53,71,82,96]:# + 0
+##        eqs.replace_by_value(i, [0]*16)
+###
+##    for i in [65,66,51,55, 57,61,59,56,80,90,101]:#+2
+##        eqs.replace_by_value(i, [0]*16)
+#
+#    eqs.simplify(verb=False)
+
+#    eqs.expand()
+#    print(eqs)
+
+#    print(eqs.tikz)
+#    solutions = gad_solving(eqs, nb_steps=10, goal=15)
+
+#    print("=== Not simplified:")
+#    print(eqs)
+#    eqs.simplify(verb=False)
+#    print("=== Simplified:")
+#    print(eqs)
+#    print(eqs.variables)
+#    print("=== Expanded:")
+#    eqs.expand()
+#    print(eqs)
